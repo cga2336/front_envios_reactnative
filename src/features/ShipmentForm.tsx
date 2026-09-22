@@ -102,8 +102,14 @@ export function ShipmentForm({ onShipmentCreated, initialQuote }: ShipmentFormPr
 
   useEffect(() => {
     if (!initialQuote) return;
-    setPickupPoint(initialQuote.origin);
-    setShippingAddress(initialQuote.destination);
+    // Origen = dirección desde donde se retira / despacha el paquete.
+    // Destino = dirección de entrega final.
+    setShippingAddress(initialQuote.origin);
+    setPickupPoint(initialQuote.destination);
+    setLength(initialQuote.length ?? '');
+    setWidth(initialQuote.width ?? '');
+    setLengthUnit(initialQuote.lengthUnit ?? 'm');
+    setWidthUnit(initialQuote.widthUnit ?? 'm');
   }, [initialQuote]);
 
   useEffect(() => {
