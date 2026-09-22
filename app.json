@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Portal Envíos",
+    "slug": "fronend",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android", "web"],
+    "scheme": "moon",
+    "ios": {
+      "bundleIdentifier": "com.mooon.portal"
+    },
+    "android": {
+      "package": "com.moon.portal"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
