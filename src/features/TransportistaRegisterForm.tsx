@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { RegisterTransportistaPayload, TransportistaSession } from '../types';
+import {
+  FieldErrorMap,
+  RegisterTransportistaPayload,
+  TransportistaRegisterFormProps,
+  TransportistaSession,
+} from '../types';
 import { registerTransportista } from '../services/transportistaApi';
 import { googleAuthSession } from '../services/googleAuthApi';
 import { useGoogleAuth } from './useGoogleAuth';
 
-type Props = {
-  onSuccess: (session?: TransportistaSession) => void;
-};
+export function TransportistaRegisterForm({ onSuccess }: TransportistaRegisterFormProps) {
+  type Errors = FieldErrorMap<keyof RegisterTransportistaPayload>;
 
-type Errors = Partial<Record<keyof RegisterTransportistaPayload, string>>;
-
-export function TransportistaRegisterForm({ onSuccess }: Props) {
   const [form, setForm] = useState<RegisterTransportistaPayload>({
     nombre: '',
     apellido: '',

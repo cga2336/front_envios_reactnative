@@ -1,16 +1,10 @@
 import { API_BASE_URL } from './api';
-import { RegisterUsuarioPayload, UsuarioProfile, UsuarioSession } from '../types';
-
-type RegisterUsuarioResponse = {
-  message: string;
-  usuario: UsuarioProfile;
-};
-
-type LoginUsuarioResponse = {
-  message: string;
-  token: string;
-  usuario: UsuarioProfile;
-};
+import {
+  LoginUsuarioResponse,
+  RegisterUsuarioPayload,
+  RegisterUsuarioResponse,
+  UsuarioSession,
+} from '../types';
 
 export async function registerUsuario(payload: RegisterUsuarioPayload): Promise<RegisterUsuarioResponse> {
   const response = await fetch(`${API_BASE_URL}/api/v1/usuarios/register`, {
@@ -34,13 +28,13 @@ export async function loginUsuario(email: string, password: string): Promise<Usu
     body: JSON.stringify({ email, password }),
   });
 
-  const data = await response.json();
+  const data = (await response.json()) as LoginUsuarioResponse;
   if (!response.ok) {
-    throw new Error(data?.message || 'No fue posible iniciar sesión.');
+    throw new Error((data as { message?: string }).message || 'No fue posible iniciar sesión.');
   }
 
   return {
-    token: (data as LoginUsuarioResponse).token,
-    usuario: (data as LoginUsuarioResponse).usuario,
+    token: data.token,
+    usuario: data.usuario,
   };
 }

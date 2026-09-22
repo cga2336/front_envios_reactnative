@@ -1,17 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { RegisterUsuarioPayload, UsuarioSession } from '../types';
+import { FieldErrorMap, RegisterUsuarioPayload, UsuarioRegisterFormProps, UsuarioSession } from '../types';
 import { registerUsuario } from '../services/usuarioApi';
 import { googleAuthSession } from '../services/googleAuthApi';
 import { useGoogleAuth } from './useGoogleAuth';
 
-type Props = {
-  onSuccess: (session?: UsuarioSession) => void;
-};
+export function UsuarioRegisterForm({ onSuccess }: UsuarioRegisterFormProps) {
+  type Errors = FieldErrorMap<keyof RegisterUsuarioPayload>;
 
-type Errors = Partial<Record<keyof RegisterUsuarioPayload, string>>;
-
-export function UsuarioRegisterForm({ onSuccess }: Props) {
   const [form, setForm] = useState<RegisterUsuarioPayload>({
     nombre: '',
     apellido: '',

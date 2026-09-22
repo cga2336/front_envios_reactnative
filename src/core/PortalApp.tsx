@@ -8,7 +8,14 @@ import { TransportistaRegisterForm } from '../features/TransportistaRegisterForm
 import { TransportistaProfileForm } from '../features/TransportistaProfileForm';
 import { UsuarioLoginForm } from '../features/UsuarioLoginForm';
 import { UsuarioRegisterForm } from '../features/UsuarioRegisterForm';
-import { QuoteData, Shipment, TransportistaProfile, TransportistaSession, UsuarioSession } from '../types';
+import {
+  QuoteData,
+  Shipment,
+  TransportistaProfile,
+  TransportistaSession,
+  UsuarioSession,
+  ViewKey,
+} from '../types';
 import { loadShipments, saveShipments } from '../utils/shipmentStorage';
 import {
   clearTransportistaSession,
@@ -18,17 +25,6 @@ import {
   saveTransportistaSession,
   saveUsuarioSession,
 } from '../utils/authStorage';
-
-type ViewKey =
-  | 'inicio'
-  | 'enviar'
-  | 'cotizar'
-  | 'seguimiento'
-  | 'perfil'
-  | 'registro-transportista'
-  | 'login-transportista'
-  | 'registro-usuario'
-  | 'login-usuario';
 
 function formatDateTime(iso: string): string {
   const date = new Date(iso);

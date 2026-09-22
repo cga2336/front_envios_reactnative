@@ -1,29 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { Pressable } from 'react-native';
-
-type ViewKey =
-  | 'inicio'
-  | 'enviar'
-  | 'cotizar'
-  | 'seguimiento'
-  | 'perfil'
-  | 'registro-transportista'
-  | 'login-transportista'
-  | 'registro-usuario'
-  | 'login-usuario';
-
-type HeaderProps = {
-  view: ViewKey;
-  onChangeView: (view: ViewKey) => void;
-  trackingSearch: string;
-  onTrackingChange: (value: string) => void;
-  onTrackingSubmit: () => void;
-  isTransportista: boolean;
-  onToggleTransportista: () => void;
-  isUsuario: boolean;
-  onUsuarioAuthPress: () => void;
-};
+import { HeaderProps } from '../types';
 
 export function Header({
   view,

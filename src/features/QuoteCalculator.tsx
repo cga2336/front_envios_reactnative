@@ -1,48 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { QuoteData } from '../types';
+import {
+  AddressResult,
+  CityOption,
+  FieldErrorMap,
+  MeasurementUnit,
+  QuoteCalculatorProps,
+  QuoteData,
+} from '../types';
 import { CLP_PER_SQUARE_METER } from '../utils/quote';
-
-type Unit = 'm' | 'cm';
-
-type FieldErrors = {
-  origin?: string;
-  destination?: string;
-  length?: string;
-  width?: string;
-};
-
-type FieldTouched = {
-  origin: boolean;
-  destination: boolean;
-  length: boolean;
-  width: boolean;
-};
-
-type CityOption = {
-  label: string;
-  full: string;
-  value: string;
-};
-
-type NominatimResult = {
-  display_name: string;
-  address?: {
-    city?: string;
-    county?: string;
-    suburb?: string;
-    city_district?: string;
-    state_district?: string;
-    town?: string;
-    village?: string;
-    municipality?: string;
-    state?: string;
-  };
-};
-
-type QuoteCalculatorProps = {
-  onSendQuote?: (quote: QuoteData) => void;
-};
 
 export function QuoteCalculator({ onSendQuote }: QuoteCalculatorProps) {
   const commonTextInputProps = {
@@ -56,10 +22,10 @@ export function QuoteCalculator({ onSendQuote }: QuoteCalculatorProps) {
   const [destination, setDestination] = useState('');
   const [length, setLength] = useState('');
   const [width, setWidth] = useState('');
-  const [lengthUnit, setLengthUnit] = useState<Unit>('m');
-  const [widthUnit, setWidthUnit] = useState<Unit>('m');
+  const [lengthUnit, setLengthUnit] = useState<MeasurementUnit>('m');
+  const [widthUnit, setWidthUnit] = useState<MeasurementUnit>('m');
   const [openSelect, setOpenSelect] = useState<null | 'length' | 'width'>(null);
-  const [errors, setErrors] = useState<FieldErrors>({});
+  const [errors, setErrors] = useState<FieldErrorMap>({});
   const [touched, setTouched] = useState<FieldTouched>({ origin: false, destination: false, length: false, width: false });
   const [originOptions, setOriginOptions] = useState<CityOption[]>([]);
   const [destinationOptions, setDestinationOptions] = useState<CityOption[]>([]);
@@ -101,25 +67,24 @@ export function QuoteCalculator({ onSendQuote }: QuoteCalculatorProps) {
       );
 
       if (!response.ok) throw new Error('Error al buscar ciudades');
-      const data = (await response.json()) as NominatimResult[];
+      const data = (await response.json()) as AddressResult[];
 
       const next = data
         .map((item) => {
+          const addr = item.address ?? {};
           const cityOrTown =
-            item.address?.city ||
-            item.address?.town ||
-            item.address?.village ||
-            item.address?.municipality ||
-            item.address?.state_district;
+            addr.city ||
+            addr.town ||
+            addr.village ||
+            addr.municipality;
 
           const comuna =
-            item.address?.suburb ||
-            item.address?.city_district ||
-            item.address?.municipality ||
-            item.address?.state_district ||
-            item.address?.county;
+            addr.suburb ||
+            addr.city_district ||
+            addr.municipality ||
+            addr.county;
 
-          const region = item.address?.state;
+          const region = addr.state;
 
           if (!cityOrTown && !comuna) return null;
 
@@ -386,16 +351,23 @@ export function QuoteCalculator({ onSendQuote }: QuoteCalculatorProps) {
   );
 }
 
+type FieldTouched = {
+  origin: boolean;
+  destination: boolean;
+  length: boolean;
+  width: boolean;
+};
+
 function UnitSelect({
   unit,
   open,
   onToggle,
   onSelect,
 }: {
-  unit: Unit;
+  unit: MeasurementUnit;
   open: boolean;
   onToggle: () => void;
-  onSelect: (next: Unit) => void;
+  onSelect: (next: MeasurementUnit) => void;
 }) {
   return (
     <View style={styles.selectWrap}>

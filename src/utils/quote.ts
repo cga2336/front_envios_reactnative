@@ -1,11 +1,8 @@
+import { MeasurementUnit, TransportQuote } from '../types';
+
 export const CLP_PER_SQUARE_METER = 20_000;
 
-export type TransportUnit = 'm' | 'cm';
-
-export type TransportQuote = {
-  squareMeters: number;
-  total: number;
-};
+export type TransportUnit = MeasurementUnit;
 
 export function computeTransportQuote(
   length: string,

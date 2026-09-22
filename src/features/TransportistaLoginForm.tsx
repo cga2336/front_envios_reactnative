@@ -1,25 +1,14 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { TransportistaSession } from '../types';
+import { LoginFieldErrors, TransportistaLoginFormProps } from '../types';
 import { loginTransportista } from '../services/transportistaApi';
 import { googleAuthSession } from '../services/googleAuthApi';
 import { useGoogleAuth } from './useGoogleAuth';
 
-type Props = {
-  onSuccess: (session: TransportistaSession) => void;
-  onRegisterPress: () => void;
-  notice?: string;
-};
-
-type FieldErrors = {
-  email?: string;
-  password?: string;
-};
-
-export function TransportistaLoginForm({ onSuccess, onRegisterPress, notice }: Props) {
+export function TransportistaLoginForm({ onSuccess, onRegisterPress, notice }: TransportistaLoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<FieldErrors>({});
+  const [errors, setErrors] = useState<LoginFieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
   const google = useGoogleAuth();
@@ -36,7 +25,7 @@ export function TransportistaLoginForm({ onSuccess, onRegisterPress, notice }: P
   async function onSubmit() {
     setServerError('');
 
-    const next: FieldErrors = {};
+    const next: LoginFieldErrors = {};
     if (!emailValid) next.email = 'Correo inválido.';
     if (!password) next.password = 'Ingresa tu contraseña.';
     setErrors(next);
@@ -88,7 +77,7 @@ export function TransportistaLoginForm({ onSuccess, onRegisterPress, notice }: P
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [google.result]);
 
-  function setField(key: keyof FieldErrors, value: string) {
+  function setField(key: keyof LoginFieldErrors, value: string) {
     if (key === 'email') setEmail(value);
     else setPassword(value);
     setErrors((prev) => ({ ...prev, [key]: undefined }));

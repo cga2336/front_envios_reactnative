@@ -1,10 +1,6 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { Shipment } from '../types';
-
-type TrackingPanelProps = {
-  shipments: Shipment[];
-};
+import { TrackingPanelProps } from '../types';
 
 export function TrackingPanel({ shipments }: TrackingPanelProps) {
   const [trackingSearch, setTrackingSearch] = useState('');

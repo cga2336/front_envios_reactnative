@@ -1,16 +1,13 @@
 import { API_BASE_URL } from './api';
-import { CompleteProfilePayload, RegisterTransportistaPayload, TransportistaProfile, TransportistaSession } from '../types';
-
-type RegisterTransportistaResponse = {
-  message: string;
-  transportista: TransportistaProfile;
-};
-
-type LoginTransportistaResponse = {
-  message: string;
-  token: string;
-  transportista: TransportistaProfile;
-};
+import {
+  CompleteProfilePayload,
+  LoginTransportistaResponse,
+  RegisterTransportistaPayload,
+  RegisterTransportistaResponse,
+  TransportistaProfile,
+  TransportistaSession,
+  UpdateTransportistaPerfilResponse,
+} from '../types';
 
 export async function registerTransportista(payload: RegisterTransportistaPayload): Promise<RegisterTransportistaResponse> {
   const response = await fetch(`${API_BASE_URL}/api/v1/transportistas/register`, {
@@ -34,21 +31,16 @@ export async function loginTransportista(email: string, password: string): Promi
     body: JSON.stringify({ email, password }),
   });
 
-  const data = await response.json();
+  const data = (await response.json()) as LoginTransportistaResponse;
   if (!response.ok) {
-    throw new Error(data?.message || 'No fue posible iniciar sesión.');
+    throw new Error((data as { message?: string }).message || 'No fue posible iniciar sesión.');
   }
 
   return {
-    token: (data as LoginTransportistaResponse).token,
-    transportista: (data as LoginTransportistaResponse).transportista,
+    token: data.token,
+    transportista: data.transportista,
   };
 }
-
-type UpdateTransportistaPerfilResponse = {
-  message: string;
-  transportista: TransportistaProfile;
-};
 
 export async function updateTransportistaPerfil(
   id: string,
@@ -64,10 +56,10 @@ export async function updateTransportistaPerfil(
     body: JSON.stringify(payload),
   });
 
-  const data = await response.json();
+  const data = (await response.json()) as UpdateTransportistaPerfilResponse;
   if (!response.ok) {
-    throw new Error(data?.message || 'No fue posible actualizar tu perfil.');
+    throw new Error((data as { message?: string }).message || 'No fue posible actualizar tu perfil.');
   }
 
-  return (data as UpdateTransportistaPerfilResponse).transportista;
+  return data.transportista;
 }

@@ -1,17 +1,11 @@
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { CompleteProfilePayload, TransportistaProfile } from '../types';
+import { CompleteProfilePayload, FieldErrorMap, TransportistaProfileFormProps } from '../types';
 import { updateTransportistaPerfil } from '../services/transportistaApi';
 
-type Props = {
-  transportista: TransportistaProfile;
-  token: string;
-  onSaved: (updated: TransportistaProfile) => void;
-};
+export function TransportistaProfileForm({ transportista, token, onSaved }: TransportistaProfileFormProps) {
+  type Errors = FieldErrorMap<keyof CompleteProfilePayload>;
 
-type Errors = Partial<Record<keyof CompleteProfilePayload, string>>;
-
-export function TransportistaProfileForm({ transportista, token, onSaved }: Props) {
   const [form, setForm] = useState<CompleteProfilePayload>({
     telefono: transportista.telefono ?? '',
     rut: transportista.rut ?? '',

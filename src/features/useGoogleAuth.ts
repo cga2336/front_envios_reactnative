@@ -2,18 +2,13 @@ import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import { GoogleCredentialResult } from '../types';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
 const IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? WEB_CLIENT_ID;
 const ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? WEB_CLIENT_ID;
-
-export type GoogleCredentialResult = {
-  idToken: string | null;
-  accessToken: string | null;
-  clientId: string;
-};
 
 function platformClientId(): string {
   if (Platform.OS === 'ios') return IOS_CLIENT_ID;

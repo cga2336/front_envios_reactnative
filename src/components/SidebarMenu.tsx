@@ -1,21 +1,18 @@
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SidebarMenuProps, LegacySidebarViewKey } from '../types';
 
-export type ViewKey = 'home' | 'generar-envio' | 'seguimiento';
-
-type Props = {
-  selected: ViewKey;
-  onSelect: (v: ViewKey) => void;
-  mobile?: boolean;
-};
-
-export function SidebarMenu({ selected, onSelect, mobile = false }: Props) {
+export function SidebarMenu({ selected, onSelect, mobile = false }: SidebarMenuProps) {
   const isWebSidebar = Platform.OS === 'web' && !mobile;
 
   return (
     <View style={[styles.wrap, isWebSidebar ? styles.sidebar : styles.mobileBar]}>
       <Text style={styles.menuTitle}>Menú</Text>
       <View style={styles.items}>
-        <MenuButton label="Generar envío" active={selected === 'generar-envio'} onPress={() => onSelect('generar-envio')} />
+        <MenuButton
+          label="Generar envío"
+          active={selected === 'generar-envio'}
+          onPress={() => onSelect('generar-envio')}
+        />
         <MenuButton label="Cotizar transporte" active={selected === 'home'} onPress={() => onSelect('home')} />
         <MenuButton label="Seguimiento" active={selected === 'seguimiento'} onPress={() => onSelect('seguimiento')} />
       </View>
@@ -23,7 +20,7 @@ export function SidebarMenu({ selected, onSelect, mobile = false }: Props) {
   );
 }
 
-function MenuButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function MenuButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void; }) {
   return (
     <Pressable style={[styles.btn, active && styles.btnActive]} onPress={onPress}>
       <Text style={[styles.btnText, active && styles.btnTextActive]}>{label}</Text>

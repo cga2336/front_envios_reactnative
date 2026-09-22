@@ -1,31 +1,8 @@
 import { API_BASE_URL } from './api';
-import { TransportistaProfile, UsuarioProfile } from '../types';
-
-export type GoogleAuthRole = 'usuario' | 'transportista';
-
-export type GoogleAuthInput = {
-  role: GoogleAuthRole;
-  idToken?: string | null;
-  accessToken?: string | null;
-  clientId?: string;
-};
-
-export type GoogleDatos = {
-  sub: string;
-  email: string;
-  nombre: string;
-  apellido: string;
-};
-
-export type GoogleAuthResponse = {
-  message: string;
-  token?: string;
-  usuario?: UsuarioProfile;
-  transportista?: TransportistaProfile;
-  vinculado?: boolean;
-  vehiculoRegistrado?: boolean;
-  googleDatos?: GoogleDatos;
-};
+import {
+  GoogleAuthInput,
+  GoogleAuthResponse,
+} from '../types';
 
 export async function googleAuthSession(input: GoogleAuthInput): Promise<GoogleAuthResponse> {
   const response = await fetch(`${API_BASE_URL}/api/v1/auth/google`, {

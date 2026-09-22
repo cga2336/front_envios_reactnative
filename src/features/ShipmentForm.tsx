@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { AddressResult, QuoteData, Shipment } from '../types';
+import { AddressResult, MeasurementUnit, QuoteData, Shipment, ShipmentFormProps } from '../types';
 import { createTrackingNumber } from '../utils/shipmentStorage';
-import { CLP_PER_SQUARE_METER, TransportUnit, computeTransportQuote } from '../utils/quote';
-
-type ShipmentFormProps = {
-  onShipmentCreated: (shipment: Shipment) => void;
-  initialQuote?: QuoteData | null;
-};
+import { CLP_PER_SQUARE_METER, computeTransportQuote } from '../utils/quote';
 
 function formatShortResult(item: AddressResult): string {
   const addr = item.address ?? {};
@@ -83,8 +78,8 @@ export function ShipmentForm({ onShipmentCreated, initialQuote }: ShipmentFormPr
   const [step, setStep] = useState<'cliente' | 'transporte'>('cliente');
   const [length, setLength] = useState('');
   const [width, setWidth] = useState('');
-  const [lengthUnit, setLengthUnit] = useState<TransportUnit>('m');
-  const [widthUnit, setWidthUnit] = useState<TransportUnit>('m');
+  const [lengthUnit, setLengthUnit] = useState<MeasurementUnit>('m');
+  const [widthUnit, setWidthUnit] = useState<MeasurementUnit>('m');
   const [paymentType, setPaymentType] = useState('');
 
   const transportQuote = useMemo(
@@ -335,12 +330,12 @@ function UnitToggle({
   unit,
   onChange,
 }: {
-  unit: TransportUnit;
-  onChange: (next: TransportUnit) => void;
+  unit: MeasurementUnit;
+  onChange: (next: MeasurementUnit) => void;
 }) {
   return (
     <View style={styles.unitToggle}>
-      {(['m', 'cm'] as TransportUnit[]).map((u) => (
+      {(['m', 'cm'] as MeasurementUnit[]).map((u) => (
         <Pressable
           key={u}
           style={[styles.unitOption, unit === u && styles.unitOptionActive]}
