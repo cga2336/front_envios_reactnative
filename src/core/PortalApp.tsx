@@ -45,6 +45,8 @@ export function PortalApp() {
   const [trackingSearch, setTrackingSearch] = useState('');
   const [quoteDraft, setQuoteDraft] = useState<QuoteData | null>(null);
   const [profileNotice, setProfileNotice] = useState('');
+  const [isSendEnabled, setIsSendEnabled] = useState(false);
+  const [sendProgress, setSendProgress] = useState(0);
 
   const isTransportista = !!transportistaSession;
   const isUsuario = !!usuarioSession;
@@ -64,6 +66,18 @@ export function PortalApp() {
       setQuoteDraft(null);
     }
   }, [view, quoteDraft]);
+
+  useEffect(() => {
+    if (view !== 'enviar' && isSendEnabled) {
+      setIsSendEnabled(false);
+    }
+  }, [view, isSendEnabled]);
+
+  useEffect(() => {
+    if (view !== 'enviar' && sendProgress !== 0) {
+      setSendProgress(0);
+    }
+  }, [view, sendProgress]);
 
   useEffect(() => {
     loadShipments().then(setShipments);
@@ -156,14 +170,90 @@ export function PortalApp() {
 
   const content = useMemo(() => {
     if (view === 'enviar') {
+      if (isCompact) {
+        return (
+          <View style={[styles.sendWrap, styles.stackColumn]}>
+            <View style={styles.sendFormWrap}>
+              <ShipmentForm
+                onShipmentCreated={handleShipmentCreated}
+                initialQuote={quoteDraft}
+                onSubmitEnabledChange={setIsSendEnabled}
+                onProgressChange={setSendProgress}
+              />
+            </View>
+            <View style={styles.quickSummaryCard}>
+              <View style={styles.quickSummaryHeader}>
+                <Text style={styles.quickSummaryTitle}>Resumen rápido del envío</Text>
+                <View style={styles.quickSummaryBadge}>
+                  <Text style={styles.quickSummaryBadgeText}>
+                    {isSendEnabled ? 'Listo para enviar' : `${sendProgress}% completado`}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.quickSummaryProgressTrack}>
+                <View style={[styles.quickSummaryProgressFill, { width: `${sendProgress}%` }]} />
+              </View>
+
+              <View style={styles.quickSummarySteps}>
+                <Text style={styles.quickSummaryStepActive}>1) Completa el formulario de envío</Text>
+                <Text style={styles.quickSummaryStepMuted}>
+                  {quoteDraft
+                    ? '2) Ya vienes con cotización: parte con avance y se completa al terminar datos'
+                    : '2) Sin cotización: avanza desde 0% al completar datos y medidas'}
+                </Text>
+              </View>
+
+              <View style={styles.quickSummaryFastQuoteBox}>
+                <Text style={styles.quickSummaryFastQuoteTitle}>Cotización rápida (opcional)</Text>
+                <Text style={styles.quickSummaryHint}>Puedes calcular el costo sin completar este formulario. Es una forma más rápida para estimar el valor del envío.</Text>
+                <Pressable style={styles.quickSummaryActionBtn} onPress={() => setView('cotizar')}>
+                  <Text style={styles.quickSummaryActionBtnText}>{quoteDraft ? 'Recalcular costo rápido' : 'Calcular costo rápido'}</Text>
+                </Pressable>
+              </View>
+
+              {quoteDraft ? (
+                <>
+                  <View style={styles.quickSummaryBlock}>
+                    <Text style={styles.quickSummaryLabel}>Origen</Text>
+                    <Text style={styles.quickSummaryLine}>{quoteDraft.origin}</Text>
+                  </View>
+                  <View style={styles.quickSummaryBlock}>
+                    <Text style={styles.quickSummaryLabel}>Destino</Text>
+                    <Text style={styles.quickSummaryLine}>{quoteDraft.destination}</Text>
+                  </View>
+                  <Text style={styles.quickSummaryLineStrong}>
+                    Medidas: {quoteDraft.length} {quoteDraft.lengthUnit} × {quoteDraft.width} {quoteDraft.widthUnit}
+                  </Text>
+                  <Text style={styles.quickSummaryLine}>Superficie: {quoteDraft.squareMeters.toFixed(3)} m²</Text>
+                  <Text style={styles.quickSummaryTotal}>Estimado: ${quoteDraft.total.toLocaleString('es-CL')} CLP</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.quickSummaryLine}>• Completa tus datos del destinatario</Text>
+                  <Text style={styles.quickSummaryLine}>• Ingresa dirección y número correctamente</Text>
+                  <Text style={styles.quickSummaryLine}>• Selecciona forma de pago y punto de retiro</Text>
+                  <Text style={styles.quickSummaryHint}>Tip: cuando tengas una cotización, aquí se mostrará el estimado automáticamente.</Text>
+                </>
+              )}
+            </View>
+          </View>
+        );
+      }
+
       return (
-        <View style={[styles.sendWrap, isCompact && styles.stackColumn]}>
+        <View style={styles.sendWrap}>
           <View style={styles.sendImageSlot}>
             <Text style={styles.sendImageTitle}>Espacio para imagen</Text>
             <Text style={styles.sendImageText}>Aquí puedes agregar una imagen o banner promocional del servicio de envíos.</Text>
           </View>
           <View style={styles.sendFormWrap}>
-            <ShipmentForm onShipmentCreated={handleShipmentCreated} initialQuote={quoteDraft} />
+            <ShipmentForm
+              onShipmentCreated={handleShipmentCreated}
+              initialQuote={quoteDraft}
+              onSubmitEnabledChange={setIsSendEnabled}
+              onProgressChange={setSendProgress}
+            />
           </View>
         </View>
       );
@@ -369,12 +459,14 @@ export function PortalApp() {
     );
   }, [
     isCompact,
+    isSendEnabled,
     isTransportista,
     isUsuario,
     loginNotice,
     profileNotice,
     quoteDraft,
     shipments,
+    sendProgress,
     trackingResult,
     trackingSearch,
     transportistaProfile,
@@ -537,6 +629,68 @@ const styles = StyleSheet.create({
   secondaryBtn: { backgroundColor: '#22c55e', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10, alignSelf: 'center' },
   secondaryBtnCompact: { alignSelf: 'flex-start' },
   secondaryBtnText: { color: '#052e16', fontWeight: '800' },
+  quickSummaryCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#dbe5f5',
+    padding: 12,
+    gap: 8,
+  },
+  quickSummaryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  quickSummaryTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
+  quickSummaryBadge: {
+    backgroundColor: '#e0ecff',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  quickSummaryBadgeText: { color: '#1e3a8a', fontWeight: '700', fontSize: 12 },
+  quickSummaryProgressTrack: {
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: '#e2e8f0',
+    overflow: 'hidden',
+  },
+  quickSummaryProgressFill: {
+    height: '100%',
+    backgroundColor: '#2563eb',
+    borderRadius: 999,
+  },
+  quickSummarySteps: { gap: 2 },
+  quickSummaryStepActive: { color: '#0f172a', fontWeight: '600', fontSize: 12 },
+  quickSummaryStepMuted: { color: '#64748b', fontSize: 12 },
+  quickSummaryFastQuoteBox: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 10,
+    padding: 10,
+    gap: 6,
+  },
+  quickSummaryFastQuoteTitle: { color: '#1e3a8a', fontWeight: '800' },
+  quickSummaryBlock: {
+    backgroundColor: '#f8fbff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  quickSummaryLabel: { color: '#64748b', fontSize: 12, fontWeight: '700' },
+  quickSummaryLine: { color: '#334155' },
+  quickSummaryLineStrong: { color: '#1e293b', fontWeight: '700' },
+  quickSummaryTotal: { color: '#1e3a8a', fontWeight: '800', marginTop: 2 },
+  quickSummaryHint: { color: '#64748b', fontSize: 12, marginTop: 4 },
+  quickSummaryActionBtn: {
+    marginTop: 6,
+    backgroundColor: '#1d4ed8',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  quickSummaryActionBtnText: { color: 'white', fontWeight: '800' },
   footerCard: { backgroundColor: '#0f172a', borderRadius: 12, padding: 12, gap: 4 },
   footerTitle: { color: 'white', fontWeight: '800' },
   footerText: { color: '#cbd5e1' },
