@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Header } from '../components/Header';
 import { QuoteCalculator } from '../features/QuoteCalculator';
 import { ShipmentForm } from '../features/ShipmentForm';
@@ -33,6 +33,9 @@ function formatDateTime(iso: string): string {
 }
 
 export function PortalApp() {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 900;
+
   const [view, setView] = useState<ViewKey>('inicio');
   const [transportistaSession, setTransportistaSession] = useState<TransportistaSession | null>(null);
   const [usuarioSession, setUsuarioSession] = useState<UsuarioSession | null>(null);
@@ -154,7 +157,7 @@ export function PortalApp() {
   const content = useMemo(() => {
     if (view === 'enviar') {
       return (
-        <View style={styles.sendWrap}>
+        <View style={[styles.sendWrap, isCompact && styles.stackColumn]}>
           <View style={styles.sendImageSlot}>
             <Text style={styles.sendImageTitle}>Espacio para imagen</Text>
             <Text style={styles.sendImageText}>Aquí puedes agregar una imagen o banner promocional del servicio de envíos.</Text>
@@ -285,23 +288,23 @@ export function PortalApp() {
         <View style={styles.heroCard}>
           {!isTransportista ? (
             <>
-              <Text style={styles.heroHeading}>Cotiza tu envío al instante</Text>
+              <Text style={[styles.heroHeading, isCompact && styles.heroHeadingCompact]}>Cotiza tu envío al instante</Text>
               <Text style={styles.heroSub}>Completa origen, destino y dimensiones para obtener el valor estimado.</Text>
             </>
           ) : (
             <>
-              <Text style={styles.heroHeading}>Quieres generar ingresos extra?.</Text>
+              <Text style={[styles.heroHeading, isCompact && styles.heroHeadingCompact]}>Quieres generar ingresos extra?.</Text>
               <Text style={styles.heroSub}>Completa el formulario y date de alta como transportista.</Text>
             </>
           )}
 
-          <View style={styles.heroContentRow}>
+          <View style={[styles.heroContentRow, isCompact && styles.stackColumn]}>
             <View style={styles.heroImageSlot}>
               <Text style={styles.heroImageTitle}>Espacio para imagen</Text>
               <Text style={styles.heroImageText}>Aquí puedes agregar un banner/foto promocional.</Text>
             </View>
             { !isTransportista ?
-            <View style={styles.quoteWrap}>
+            <View style={[styles.quoteWrap, isCompact && styles.quoteWrapCompact]}>
               <QuoteCalculator onSendQuote={handleSendFromQuote} />
             </View>:null }
           </View>
@@ -318,7 +321,7 @@ export function PortalApp() {
         </View>
 
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Llegamos a todos los rincones de Chile</Text>
+          <Text style={[styles.sectionTitle, isCompact && styles.sectionTitleCompact]}>Llegamos a todos los rincones de Chile</Text>
           <Text style={styles.muted}>Más de 3.000 puntos de envío y retiro de Arica a Puerto Williams.</Text>
           <Image
             source={{ uri: 'https://cdn.blue.cl/cms/2/media/map_Point_9d09e1d639.png' }}
@@ -328,8 +331,8 @@ export function PortalApp() {
         </View>
 
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Más formas de enviar, pagar y recibir tus paquetes</Text>
-          <View style={styles.iconGrid}>
+          <Text style={[styles.sectionTitle, isCompact && styles.sectionTitleCompact]}>Más formas de enviar, pagar y recibir tus paquetes</Text>
+          <View style={[styles.iconGrid, isCompact && styles.stackColumn]}>
             <IconFeature icon="🖨️" title="Imprime etiqueta" text="En centros de envío habilitados." />
             <IconFeature icon="💳" title="Pago flexible" text="Online, presencial o por pagar." />
             <IconFeature icon="📦" title="Envío y retiro" text="Puntos físicos 24/7." />
@@ -338,8 +341,8 @@ export function PortalApp() {
         </View>
 
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Elige la forma de envío que más te acomode</Text>
-          <View style={styles.methodGrid}>
+          <Text style={[styles.sectionTitle, isCompact && styles.sectionTitleCompact]}>Elige la forma de envío que más te acomode</Text>
+          <View style={[styles.methodGrid, isCompact && styles.stackColumn]}>
             <MethodCard title="Envía en speed.cl" text="Completa datos, paga, imprime y entrega en un punto." onPress={() => setView('enviar')} />
             <MethodCard title="Plataforma de envíos" text="Para envíos unitarios o múltiples desde una plataforma simple." onPress={() => setView('cotizar')} />
             <MethodCard title="App móvil" text="Gestiona tus envíos desde el celular de forma rápida." onPress={() => setView('enviar')} />
@@ -347,12 +350,12 @@ export function PortalApp() {
           </View>
         </View>
 
-        <View style={styles.lockerBanner}>
+        <View style={[styles.lockerBanner, isCompact && styles.stackColumn]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.lockerTitle}>Necesitas un envio rapido?, Estamos disponibles 24/7!</Text>
+            <Text style={[styles.lockerTitle, isCompact && styles.lockerTitleCompact]}>Necesitas un envio rapido?, Estamos disponibles 24/7!</Text>
             <Text style={styles.lockerText}>Retira y envía cuando quieras, con una experiencia más rápida.</Text>
           </View>
-          <Pressable style={styles.secondaryBtn} onPress={() => setView('enviar')}>
+          <Pressable style={[styles.secondaryBtn, isCompact && styles.secondaryBtnCompact]} onPress={() => setView('enviar')}>
             <Text style={styles.secondaryBtnText}>Comenzar envío</Text>
           </Pressable>
         </View>
@@ -364,11 +367,24 @@ export function PortalApp() {
         </View>
       </View>
     );
-  }, [view, shipments, trackingResult, trackingSearch, quoteDraft, transportistaProfile, isTransportista, loginNotice, isUsuario, usuarioLoginNotice, profileNotice]);
+  }, [
+    isCompact,
+    isTransportista,
+    isUsuario,
+    loginNotice,
+    profileNotice,
+    quoteDraft,
+    shipments,
+    trackingResult,
+    trackingSearch,
+    transportistaProfile,
+    usuarioLoginNotice,
+    view,
+  ]);
 
   return (
     <View style={styles.shell}>
-      <View style={styles.main}>
+      <View style={[styles.main, isCompact && styles.mainCompact]}>
         <Header
           view={view}
           onChangeView={setView}
@@ -422,14 +438,16 @@ function MethodCard({ title, text, onPress }: { title: string; text: string; onP
 const styles = StyleSheet.create({
   shell: { flex: 1, backgroundColor: '#f5f8ff' },
   main: { flex: 1, width: '100%', maxWidth: 1180, alignSelf: 'center', padding: 12, gap: 12 },
+  mainCompact: { paddingHorizontal: 8, paddingVertical: 8 },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 28 },
   homeWrap: { gap: 12 },
   sendWrap: {
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    flexDirection: 'row',
     gap: 12,
     alignItems: 'stretch',
   },
+  stackColumn: { flexDirection: 'column' },
   sendImageSlot: {
     flex: 1,
     minHeight: 260,
@@ -456,9 +474,10 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   heroHeading: { color: '#0f172a', fontSize: 28, fontWeight: '800' },
+  heroHeadingCompact: { fontSize: 23 },
   heroSub: { color: '#475569' },
   heroContentRow: {
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    flexDirection: 'row',
     gap: 12,
     alignItems: 'stretch',
   },
@@ -478,26 +497,28 @@ const styles = StyleSheet.create({
   heroImageTitle: { color: '#1e3a8a', fontWeight: '800' },
   heroImageText: { color: '#64748b', textAlign: 'center' },
   quoteWrap: {
-    width: Platform.OS === 'web' ? 420 : '100%',
-    alignSelf: Platform.OS === 'web' ? 'flex-end' : 'stretch',
+    width: 420,
+    alignSelf: 'flex-end',
   },
+  quoteWrapCompact: { width: '100%', alignSelf: 'stretch' },
   input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 11, paddingVertical: 10, backgroundColor: 'white' },
   quickActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   pill: { backgroundColor: '#e0ecff', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
   pillText: { color: '#1e3a8a', fontWeight: '700' },
   sectionCard: { backgroundColor: 'white', borderRadius: 14, borderWidth: 1, borderColor: '#dbe5f5', padding: 14, gap: 10 },
   sectionTitle: { fontSize: 21, fontWeight: '800', color: '#0f172a' },
+  sectionTitleCompact: { fontSize: 19 },
   sectionTitle2: { fontSize: 17, fontWeight: '700', color: '#0f172a', marginTop: 10 },
   success: { color: '#166534', backgroundColor: '#dcfce7', borderRadius: 8, padding: 8, marginVertical: 6 },
   muted: { color: '#475569' },
   coverImage: { width: '100%', height: 220, borderRadius: 8, backgroundColor: '#f8fafc' },
-  iconGrid: { flexDirection: Platform.OS === 'web' ? 'row' : 'column', gap: 8 },
+  iconGrid: { flexDirection: 'row', gap: 8 },
   iconCard: { flex: 1, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#f8fbff', padding: 10, gap: 4 },
   iconEmoji: { fontSize: 22 },
   iconTitle: { fontWeight: '700', color: '#0f172a' },
   iconText: { color: '#475569' },
-  methodGrid: { flexDirection: Platform.OS === 'web' ? 'row' : 'column', flexWrap: 'wrap', gap: 8 },
-  methodCard: { flex: 1, minWidth: Platform.OS === 'web' ? 230 : undefined, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', padding: 10, gap: 6 },
+  methodGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  methodCard: { flex: 1, minWidth: 230, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', padding: 10, gap: 6 },
   methodTitle: { fontWeight: '800', color: '#0f172a' },
   methodText: { color: '#475569' },
   methodBtn: { alignSelf: 'flex-start', backgroundColor: '#dbeafe', borderRadius: 8, paddingHorizontal: 11, paddingVertical: 7 },
@@ -506,13 +527,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#07215f',
     padding: 14,
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 10,
   },
   lockerTitle: { color: 'white', fontSize: 24, fontWeight: '800' },
+  lockerTitleCompact: { fontSize: 20 },
   lockerText: { color: '#bfdbfe' },
-  secondaryBtn: { backgroundColor: '#22c55e', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10, alignSelf: Platform.OS === 'web' ? 'center' : 'flex-start' },
+  secondaryBtn: { backgroundColor: '#22c55e', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10, alignSelf: 'center' },
+  secondaryBtnCompact: { alignSelf: 'flex-start' },
   secondaryBtnText: { color: '#052e16', fontWeight: '800' },
   footerCard: { backgroundColor: '#0f172a', borderRadius: 12, padding: 12, gap: 4 },
   footerTitle: { color: 'white', fontWeight: '800' },

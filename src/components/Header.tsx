@@ -142,7 +142,15 @@ export function Header({
 
       <Modal visible={isCompact && menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)} />
-        <View style={styles.mobileFloatingMenu}>
+        <View
+          style={[
+            styles.mobileFloatingMenu,
+            {
+              width: Math.min(300, Math.max(220, width - 24)),
+              right: Math.max(8, Math.round((width - Math.min(300, Math.max(220, width - 24))) / 2)),
+            },
+          ]}
+        >
           <View style={styles.mobileNavLinks}>
             <NavItem
               label="Inicio"
@@ -192,13 +200,32 @@ export function Header({
             ) : null}
           </View>
           {isTransportista ? (
+            <>
+              <Pressable
+                onPress={() => {
+                  onChangeView('perfil');
+                  setMenuOpen(false);
+                }}
+              >
+                <Text style={styles.mobileLogin}>Mi perfil</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  onToggleTransportista();
+                  setMenuOpen(false);
+                }}
+              >
+                <Text style={styles.mobileLogin}>Cerrar sesión</Text>
+              </Pressable>
+            </>
+          ) : isUsuario ? (
             <Pressable
               onPress={() => {
-                onChangeView('perfil');
+                onUsuarioAuthPress();
                 setMenuOpen(false);
               }}
             >
-              <Text style={styles.mobileLogin}>Mi perfil</Text>
+              <Text style={styles.mobileLogin}>Cerrar sesión</Text>
             </Pressable>
           ) : (
             <>
