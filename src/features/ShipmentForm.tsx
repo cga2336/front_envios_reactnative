@@ -52,7 +52,7 @@ function isValidRut(rut: string): boolean {
   return expected === dv;
 }
 
-export function ShipmentForm({ onShipmentCreated, initialQuote }: ShipmentFormProps) {
+export function ShipmentForm({ onShipmentCreated, initialQuote, onSubmitEnabledChange, onProgressChange }: ShipmentFormProps) {
   const commonTextInputProps = {
     autoCorrect: false,
     spellCheck: false,
@@ -99,6 +99,56 @@ export function ShipmentForm({ onShipmentCreated, initialQuote }: ShipmentFormPr
       paymentType.trim().length > 0,
     [name, lastName, email, phone, rut, shippingAddress, shippingAddressNumber, paymentType],
   );
+
+  const canSendShipment = step === 'transporte' && !!transportQuote;
+
+  const clientProgressRatio = useMemo(() => {
+    const checks = [
+      name.trim().length > 0,
+      lastName.trim().length > 0,
+      isValidEmail(email),
+      isValidPhone(phone),
+      isValidRut(rut),
+      shippingAddress.trim().length >= 5,
+      shippingAddressNumber.trim().length > 0,
+      paymentType.trim().length > 0,
+      pickupPoint.trim().length > 0,
+    ];
+    const completed = checks.filter(Boolean).length;
+    return completed / checks.length;
+  }, [name, lastName, email, phone, rut, shippingAddress, shippingAddressNumber, paymentType, pickupPoint]);
+
+  const transportProgressRatio = useMemo(() => {
+    const parsedLength = Number(length.replace(',', '.'));
+    const parsedWidth = Number(width.replace(',', '.'));
+    const checks = [parsedLength > 0, parsedWidth > 0];
+    const completed = checks.filter(Boolean).length;
+    return completed / checks.length;
+  }, [length, width]);
+
+  const progress = useMemo(() => {
+    if (initialQuote) {
+      const base = 35;
+      const extra = Math.round(clientProgressRatio * 65);
+      return Math.min(100, base + extra);
+    }
+    const clientPart = Math.round(clientProgressRatio * 70);
+    const transportPart = Math.round(transportProgressRatio * 30);
+    return Math.min(100, clientPart + transportPart);
+  }, [clientProgressRatio, initialQuote, transportProgressRatio]);
+
+  useEffect(() => {
+    onSubmitEnabledChange?.(canSendShipment);
+  }, [canSendShipment, onSubmitEnabledChange]);
+
+  useEffect(() => {
+    onProgressChange?.(progress);
+  }, [onProgressChange, progress]);
+
+  useEffect(() => () => {
+    onSubmitEnabledChange?.(false);
+    onProgressChange?.(0);
+  }, [onProgressChange, onSubmitEnabledChange]);
 
   useEffect(() => {
     if (!initialQuote) return;
