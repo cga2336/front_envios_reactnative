@@ -287,6 +287,8 @@ export type HeaderProps = {
 export type ShipmentFormProps = {
   onShipmentCreated: (shipment: Shipment) => void;
   initialQuote?: QuoteData | null;
+  onSubmitEnabledChange?: (enabled: boolean) => void;
+  onProgressChange?: (progress: number) => void;
 };
 
 export type QuoteCalculatorProps = {
