@@ -92,14 +92,33 @@ La vista activa se maneja con `useState` en `PortalApp`; `Header` recibe callbac
 
 ### Reglas de negocio implementadas en el frontend
 
+#### Reglas globales (aplican a web + móvil)
+
 - **Transportista sin vehículo**: al hacer login/registro con Google, si no tiene `camion_patente` se le fuerza a `perfil` para completar teléfono, RUT y datos del camión (ver `handleTransportistaLogin`).
 - **Cotización precargada en envío**: desde el cotizador se puede pasar `quoteDraft` al formulario; el origen de la cotización se usa como dirección de envío y el destino como punto de entrega.
 - **Validación de formulario**: email, teléfono chileno y RUT (dígito verificador) se validan en `ShipmentForm.tsx`.
 - **Estado del envío**: `'Creado' | 'En ruta' | 'Entregado'` (por ahora los envíos se crean localmente y persisten solo en el dispositivo; **no** se envían al backend).
-- **Header móvil (web en dispositivo móvil)**:
-  - Si hay sesión de **usuario**, el enlace `Regístrate / Iniciar sesión` cambia a `Cerrar sesión` y ejecuta el cierre real de sesión.
-  - Cuando el **usuario** está autenticado, se oculta el enlace `¿Eres transportista? Entra aquí`.
-  - Al cerrar sesión, el enlace de transportista vuelve a mostrarse.
+- **Cotización rápida es opcional**: el usuario puede cotizar en la vista `cotizar` sin completar el formulario de `enviar`; se presenta como atajo para estimar costo.
+
+#### Reglas específicas de móvil (web en pantalla compacta / dispositivo móvil)
+
+- **Header móvil de autenticación**:
+  - Si hay sesión de **usuario**, `Regístrate / Iniciar sesión` cambia a `Cerrar sesión` y ejecuta cierre real de sesión.
+  - Si hay sesión de **usuario**, se oculta `¿Eres transportista? Entra aquí`.
+  - Al cerrar sesión de usuario, el enlace de transportista vuelve a mostrarse.
+  - Si hay sesión de **transportista**, el menú muestra `Mi perfil` y `Cerrar sesión`.
+- **Vista `enviar` en móvil**:
+  - Se prioriza el **formulario completo** en pantalla (no se muestra el bloque de imagen).
+  - Debajo se muestra un bloque **Resumen rápido del envío** con estado y progreso.
+- **Barra de progreso del resumen móvil**:
+  - **Con cotización previa (`quoteDraft`)**: inicia con avance base (>0%) y completa al 100% al finalizar datos requeridos.
+  - **Sin cotización previa**: inicia en 0% y sube progresivamente al completar datos del formulario y luego medidas de carga.
+  - Si se pierde la condición de envío (ej. deja de haber medidas válidas), el progreso vuelve a recalcularse (no se mantiene forzado en 100%).
+
+#### Reglas específicas de web escritorio
+
+- **Vista `enviar` desktop**: mantiene layout de dos columnas (slot de imagen + formulario).
+- **Navegación desktop**: se usa barra superior y navegación principal expandida (sin menú hamburguesa modal).
 
 ---
 
