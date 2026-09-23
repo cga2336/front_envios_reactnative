@@ -1,145 +1,202 @@
-# Portal híbrido de envíos (`frontend`)
+# Portal híbrido de envíos — Frontend
 
-Aplicación híbrida construida con **React Native + Expo + React Native Web**. Es la interfaz de cliente y transportista de un portal de envíos nacional en Chile.
+Frontend del **portal de envíos y transporte** implementado como app **hibrida** con **React Native + Expo + React Native Web**: el mismo código corre en **web (browser), iOS y Android**.
 
-> Este documento está pensado para que un agente de código comprenda rápidamente el contexto, arquitectura y convenciones del proyecto.
+Este README está pensado para que un agente (IA) o desarrollador nuevo comprenda el contexto del proyecto sin intervención humana.
 
-## 1. Tecnologías y herramientas
+---
 
-| Tecnología | Uso |
+## 1. Contexto del proyecto
+
+El repositorio raíz `envios_transportes/` contiene:
+
+| Carpeta | Rol |
 |---|---|
-| React Native 0.76.9 | UI multiplataforma |
-| Expo SDK ~57.0.0 | Dev server, bundler Metro, autenticación, navegador web |
-| React Native Web ~0.19.13 | Render web dentro del mismo código base |
-| TypeScript ^5.6.2 | Tipado estricto (`strict: true`) |
-| AsyncStorage / `localStorage` | Persistencia local de sesiones y envíos |
-| `expo-auth-session` + `expo-web-browser` | OAuth con Google |
+| `frontend/` | **Este proyecto** — app híbrida (Expo / React Native / Web) |
+| `backend/` | API REST (Node.js + Express) con PostgreSQL vía Supabase |
+| `funcionalidades.md` | Especificación funcional de alto nivel (fuente de verdad del negocio) |
+| `opencode.jsonc` | Configuración de OpenCode (modelo `ollama/qwen3:8b`) |
 
-## 2. Propósito del proyecto
+### Especificación funcional (resumen de `funcionalidades.md`)
 
-Portal de envíos que permite a **usuarios/clientes** cotizar y generar envíos, y a **transportistas** registrarse, iniciar sesión y gestionar su perfil/vehículo. Actualmente el frontend también administra localmente el estado de los envíos del usuario (no hay backend de tracking real en esta capa). Trabaja contra una API REST interna que por defecto corre en `localhost:4000`.
+- **Usuario final** puede:
+  - Crear un envío completando un formulario con campos obligatorios (nombre, apellido, correo, celular, RUT, dirección de envío con búsqueda, punto de entrega, punto de retiro).
+  - Cotizar transporte indicando origen, destino y dimensiones (largo × ancho). El valor por **metro cuadrado** es de **$20.000 CLP**.
+  - Rastrear un envío por su **N° de seguimiento**.
+- **Transportista** (conductor) puede:
+  - Darse de alta (registro/login, incluido flujo con Google).
+  - Completar su perfil con datos personales y de vehículo/camión (obligatorio para operar).
+  - (Planificado en la especificación: crear consolidados/viajes con pago de compromiso, dashboard de trabajos — aún no implementado en este frontend).
 
-## 3. Scripts disponibles
+---
+
+## 2. Stack tecnológico
+
+| Capa | Tecnología |
+|---|---|
+| Framework | **Expo ~57** (`expo` SDK 57) |
+| UI | **React Native 0.76.9** |
+| Web | **react-native-web ~0.19.13** + `@expo/metro-runtime` |
+| Lenguaje | **TypeScript** (`strict: true`, `expo/tsconfig.base`) |
+| Persistencia local | `@react-native-async-storage/async-storage` (nativo) / `localStorage` (web) |
+| Auth OAuth | `expo-auth-session` + `expo-web-browser` (Google Sign-In) |
+| Búsqueda de direcciones | **Nominatim (OpenStreetMap)** — solo Chile (`countrycodes=cl`, `accept-language=es`) |
+| Navegación | No usa react-navigation: navegación por **estado local de vistas** (`PortalApp`) |
+
+Scripts disponibles (`package.json`):
 
 ```bash
+npm run start     # expo start
+npm run android   # expo run:android
+npm run ios       # expo run:ios
+npm run web       # expo start --web
+```
+
+---
+
+## 3. Arquitectura y estructura del código
+
+```
+App.tsx                        → entrada; monta <PortalApp/> en SafeAreaView
+src/
+├── core/PortalApp.tsx         → orquestador principal: estado de sesión, vistas,
+│                                envíos, tracking y composición de pantallas
+├── components/
+│   ├── Header.tsx             → header responsive (nav desktop + menú móvil modal)
+│   └── SidebarMenu.tsx        → menú lateral (web)
+├── features/                  → una carpeta/archivo por módulo de UI
+│   ├── QuoteCalculator.tsx    → cotización de transporte (origen, destino, dimensiones)
+│   ├── ShipmentForm.tsx       → formulario de envío (2 pasos: cliente → transporte)
+│   ├── TrackingPanel.tsx      → seguimiento por N° de envío
+│   ├── UsuarioLoginForm.tsx / UsuarioRegisterForm.tsx
+│   ├── TransportistaLoginForm.tsx / TransportistaRegisterForm.tsx / TransportistaProfileForm.tsx
+│   └── useGoogleAuth.ts       → hook de Google OAuth (expo-auth-session)
+├── services/                  → capa HTTP hacia el backend
+│   ├── api.ts                 → resuelve API_BASE_URL
+│   ├── usuarioApi.ts          → register/login de usuarios
+│   ├── transportistaApi.ts    → register/login + update perfil
+│   └── googleAuthApi.ts       → POST /api/v1/auth/google (intercambio de token)
+├── utils/
+│   ├── quote.ts               → cálculo de tarifa (CLP_PER_SQUARE_METER = 20_000)
+│   ├── authStorage.ts         → persistencia de sesiones (usuario/transportista)
+│   └── shipmentStorage.ts     → persistencia de envíos + generación de tracking
+├── pages/                     → (vacío por ahora, reservado)
+└── types.ts                   → tipos compartidos de todo el dominio
+```
+
+### Navegación por vistas (`ViewKey` en `PortalApp.tsx`)
+
+`inicio` · `enviar` · `cotizar` · `seguimiento` · `perfil` · `registro-transportista` · `login-transportista` · `registro-usuario` · `login-usuario`
+
+La vista activa se maneja con `useState` en `PortalApp`; `Header` recibe callbacks para cambiar de vista. No hay router.
+
+### Reglas de negocio implementadas en el frontend
+
+- **Transportista sin vehículo**: al hacer login/registro con Google, si no tiene `camion_patente` se le fuerza a `perfil` para completar teléfono, RUT y datos del camión (ver `handleTransportistaLogin`).
+- **Cotización precargada en envío**: desde el cotizador se puede pasar `quoteDraft` al formulario; el origen de la cotización se usa como dirección de envío y el destino como punto de entrega.
+- **Validación de formulario**: email, teléfono chileno y RUT (dígito verificador) se validan en `ShipmentForm.tsx`.
+- **Estado del envío**: `'Creado' | 'En ruta' | 'Entregado'` (por ahora los envíos se crean localmente y persisten solo en el dispositivo; **no** se envían al backend).
+- **Header móvil (web en dispositivo móvil)**:
+  - Si hay sesión de **usuario**, el enlace `Regístrate / Iniciar sesión` cambia a `Cerrar sesión` y ejecuta el cierre real de sesión.
+  - Cuando el **usuario** está autenticado, se oculta el enlace `¿Eres transportista? Entra aquí`.
+  - Al cerrar sesión, el enlace de transportista vuelve a mostrarse.
+
+---
+
+## 4. Contratos con el backend
+
+Base URL: `EXPO_PUBLIC_API_URL` o fallback por plataforma (`http://10.0.2.2:4000` en Android emulador, `http://localhost:4000` en el resto). Ver `src/services/api.ts`.
+
+| Método | Ruta | Función frontend | Autorización |
+|---|---|---|---|
+| POST | `/api/v1/usuarios/register` | `registerUsuario` | — |
+| POST | `/api/v1/usuarios/login` | `loginUsuario` | — |
+| POST | `/api/v1/transportistas/register` | `registerTransportista` | — |
+| POST | `/api/v1/transportistas/login` | `loginTransportista` | — |
+| PUT | `/api/v1/transportistas/:id/perfil` | `updateTransportistaPerfil` | `Bearer <token>` |
+| POST | `/api/v1/auth/google` | `googleAuthSession` | — |
+
+En caso de error, el backend responde con `{ message: string }`; el frontend lanza `Error(message)`.
+
+**Auth con Google** (`src/features/useGoogleAuth.ts` + `src/services/googleAuthApi.ts`):
+1. Se obtienen credenciales (`idToken` / `accessToken`) con `expo-auth-session` según la plataforma.
+2. Se envían a `/api/v1/auth/google` indicando `role: 'usuario' | 'transportista'`.
+3. Si el transportista no tiene vehículo registrado, la respuesta incluye `vinculado/vehiculoRegistrado` para completar perfil.
+
+### Tipos clave (`src/types.ts`)
+
+- `Shipment` — envío con tracking, datos del cliente, medidas, `status`, `createdAt`.
+- `QuoteData` — cotización (origen, destino, dimensiones, `squareMeters`, `total`).
+- `TransportistaSession` / `UsuarioSession` — `{ token, transporte|usuario }`.
+- `CompleteProfilePayload` — payload obligatorio para completar perfil de transportista.
+
+---
+
+## 5. Configuración de entorno (`.env`)
+
+**El archivo `.env` está en `.gitignore`; no versionar credenciales.** Variables utilizadas:
+
+```bash
+# URL de la API backend (si está vacía se usa localhost:4000)
+EXPO_PUBLIC_API_URL=http://localhost:4000
+
+# Client IDs de OAuth 2.0 de Google Cloud Console (uno por tipo de app)
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=
+```
+
+En la misma carpeta existe `.env.prod` con una credencial Supabase en texto plano. **Se recomienda eliminarla del directorio y rotar la contraseña**, ya que no debería vivir ni siquiera en un archivo local (aunque esté gitignored). Los prefijos `EXPO_PUBLIC_` son los únicos que Expo expone al bundle del cliente.
+
+---
+
+## 6. Persistencia local
+
+| Dato | Web | iOS/Android |
+|---|---|---|
+| Sesión transportista (`transportista_session`) | `localStorage` | `AsyncStorage` |
+| Sesión usuario (`usuario_session`) | `localStorage` | `AsyncStorage` |
+| Envíos (`shipments`) | `localStorage` | `AsyncStorage` |
+
+N° de seguimiento generado en `createTrackingNumber()` con formato `ENV-YYYYMMDD-XXXX`.
+
+---
+
+## 7. Ejecutar el proyecto
+
+```bash
+cd frontend
 npm install
-npm run start      # Inicia el dev server de Expo
-npm run web        # Inicia solo la versión web
-npm run android    # Compila/inicia Android
-npm run ios        # Compila/inicia iOS (requiere macOS + Xcode)
+npm run start
 ```
 
-## 4. Variables de entorno
+Luego en la terminal de Expo:
+- `w` → abrir en navegador (web)
+- `a` → Android (emulador o dispositivo)
+- `i` → iOS (macOS con Xcode)
 
-El frontend las lee desde las variables públicas de Expo:
+Para probar contra el backend local, asegúrate de que corra en `http://localhost:4000` (o configura `EXPO_PUBLIC_API_URL`). En el emulador de Android el fallback automático es `10.0.2.2:4000`.
 
-- `EXPO_PUBLIC_API_URL` — Base URL de la API REST (default: `http://localhost:4000`, Android emulator: `http://10.0.2.2:4000`).
-- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` — Client ID de Google para web.
-- `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` — Client ID de Google para iOS.
-- `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` — Client ID de Google para Android.
+---
 
-Ver lógica en:
-- `src/services/api.ts` para la URL base.
-- `src/features/useGoogleAuth.ts` para los client IDs de Google.
+## 8. Convenciones y advertencias conocidas
 
-## 5. Estructura de carpetas
+- **Nombre del paquete**: `package.json` tiene `"name": "fronend"` (typo histórico) y `app.json` usa `slug: "fronend"`. La marca visible en el header es **"MOON"** y el nombre de la app es "Portal Envíos". **No "corregir" estos identificadores sin confirmación**: romperían deep links, EAS y el bundle identifier actual (`com.moon.portal` / `com.mooon.portal`).
+- **Sin commits aún**: el repo git en `main` no tiene commits iniciales; es un proyecto en fase inicial de desarrollo.
+- `src/pages/` y `src/components/layout/` existen pero están **vacíos** (reservados).
+- **Seguimiento**: consulta únicamente envíos **locales** (persistidos en el dispositivo); el backend aún no expone endpoints de envíos/tracking.
+- El cotizador usa **largo × ancho (m²)** para la tarifa, a pesar de que la especificación habla de "m³". El costo está centralizado en `CLP_PER_SQUARE_METER = 20_000` (`src/utils/quote.ts`).
+- Búsqueda de direcciones usa **Nominatim** de OpenStreetMap, con límite de 6 resultados y filtro `countrycodes=cl`; respetar su política de uso (no hacer spam de requests).
+- Comentarios y mensajes de UI están en **español**; mantener ese idioma en las contribuciones.
+- Tipado estricto: al tocar `types.ts`, actualizar también services/formularios que consumen esos tipos.
 
-```
-frontend/
-├── App.tsx                      # Punto de entrada raíz. SafeAreaView + StatusBar + PortalApp.
-├── app.json                     # Configuración de Expo (slug fronend, scheme moon, plataformas ios/android/web).
-├── babel.config.js              # Configuración de Babel/Metro.
-├── tsconfig.json                # Extiende expo/tsconfig.base con strict: true.
-└── src/
-    ├── core/
-    │   └── PortalApp.tsx        # Componente principal. Maneja vistas, sesiones, envíos, navegación y layout.
-    ├── components/
-    │   ├── Header.tsx           # Header + navegación principal + menú móvil (compacto <900px).
-    │   └── SidebarMenu.tsx      # Menú lateral/móvil legado (no usado actualmente por PortalApp).
-    ├── features/
-    │   ├── QuoteCalculator.tsx      # Cotizador origen/destino/dimensiones.
-    │   ├── ShipmentForm.tsx         # Formulario de generación de envío + búsqueda de direcciones.
-    │   ├── TrackingPanel.tsx        # (legacy) panel de seguimiento.
-    │   ├── UsuarioLoginForm.tsx     # Login de usuario.
-    │   ├── UsuarioRegisterForm.tsx  # Registro de usuario.
-    │   ├── TransportistaLoginForm.tsx    # Login de transportista.
-    │   ├── TransportistaRegisterForm.tsx # Registro de transportista.
-    │   ├── TransportistaProfileForm.tsx  # Completar/editar perfil y vehículo.
-    │   └── useGoogleAuth.ts            # Hook de autenticación con Google.
-    ├── services/
-    │   ├── api.ts                 # `API_BASE_URL` con fallback por plataforma.
-    │   ├── usuarioApi.ts          # Login/registro de usuarios.
-    │   ├── transportistaApi.ts    # Login/registro/perfil de transportistas.
-    │   └── googleAuthApi.ts       # Envío de credenciales Google al backend.
-    ├── utils/
-    │   ├── quote.ts               # Cálculo de cotización: $20.000 CLP por m².
-    │   ├── authStorage.ts         # Persistencia de sesiones usuario/transportista.
-    │   └── shipmentStorage.ts     # Persistencia de envíos y generador de tracking number.
-    └── types.ts                   # Tipos compartidos del dominio.
-```
+---
 
-## 6. Arquitectura y flujo
+## 9. Definition of Done (para agentes que modifiquen este proyecto)
 
-- `App.tsx` monta `PortalApp`.
-- `PortalApp` administra:
-  - El estado de vista (`ViewKey`): `inicio`, `enviar`, `cotizar`, `seguimiento`, `perfil`, `login-transportista`, `registro-transportista`, `login-usuario`, `registro-usuario`.
-  - Sesiones de **usuario** y **transportista** (cargadas desde `authStorage` al iniciar).
-  - Lista de envíos generados (`shipmentStorage`) y búsqueda de seguimiento local.
-  - Handlers de login, registro y cierre de sesión.
-- El menú principal vive en `Header.tsx`. Es responsivo:
-  - Web ancha (`>=900px`): barra superior + navegación horizontal + buscador de seguimiento.
-  - Móvil: menú hamburguesa con Modal.
-- Regla de negocio para transportistas: al iniciar sesión, si no tienen vehículo registrado (`!camion_patente`), se redirige a la vista `perfil` para completar datos.
-
-## 7. Módulos principales
-
-### 7.1 Inicio (`inicio`)
-Hero con cotizador, accesos rápidos, secciones promocionales, banner 24/7 y footer.
-
-### 7.2 Cotizar transporte (`QuoteCalculator`)
-- Campos: origen, destino, largo, ancho.
-- Búsqueda de ciudades/comunas vía Nominatim (OpenStreetMap), solo Chile (`countrycodes=cl`).
-- Unidades `m`/`cm`.
-- Tarifa: `$20.000 CLP/m²`.
-- Permite pasar la cotización al formulario de envío.
-
-### 7.3 Enviar paquete (`ShipmentForm`)
-- Paso 1 — Datos del cliente: nombre, apellido, correo, celular, RUT, dirección de envío (búsqueda Nominatim), número de dirección, forma de pago (online/presencial/por pagar) y punto de retiro.
-- Paso 2 — Datos del transporte: largo/ancho, cotización y envío.
-- Validaciones locales: email chileno básico, celular de 8-9 dígitos, RUT chileno, campos obligatorios.
-- Al crear el envío genera un `trackingNumber`, lo guarda localmente y redirige a seguimiento.
-
-### 7.4 Seguimiento
-Búsqueda local por número de envío contra `shipments` almacenados. Muestra estado, fecha, cliente, dirección, pago y total.
-
-### 7.5 Autenticación
-- Usuarios y transportistas tienen flujos separados: login/registro manual + Google OAuth.
-- Los formularios delegan la llamada a `usuarioApi` / `transportistaApi` / `googleAuthApi`.
-- `useGoogleAuth` devuelve `prompt`, `result`, `error`. Si no hay client IDs configurados, muestra error sin romper la app.
-- La sesión (token + perfil) se guarda en `AsyncStorage`/`localStorage`.
-
-## 8. Convenciones importantes
-
-- **Estilos**: ` StyleSheet.create()` a pie de componente. Uso intensivo de `Platform.OS === 'web'` para layouts de escritorio.
-- **Navegación**: es propia del estado (sin React Navigation). Toda navegación ocurre por `setView` en `PortalApp`.
-- **Tipos**: centralizados en `src/types.ts`. Nombrados en español para reflejar el dominio del negocio.
-- **Persistencia**: usa `Platform.OS === 'web' ? localStorage : AsyncStorage`.
-- **Comunicación API**: fetch con `Authorization: Bearer <token>` para endpoints protegidos.
-- **Google Auth**: requiere variables de entorno. Sin ellas el hook falla graceful y explica cómo configurarlo.
-
-## 9. Consideraciones técnicas / deuda conocida
-
-- `SidebarMenu.tsx` es un componente legado con ViewKeys distintos (`home`, `generar-envio`, `seguimiento`) y no está integrado actualmente en `PortalApp`.
-- `TrackingPanel.tsx` tampoco es usado por `PortalApp`; el seguimiento se renderiza inline en `PortalApp`.
-- El frontend asume backend en `localhost:4000` por defecto.
-- El formulario de envío usa `<br></br>` dentro del JSX para separación visual (solo web).
-- Validaciones son principalmente locales; el RUT valida dígito verificador.
-
-## 10. Cómo empezar como agente
-
-1. Verifica que `package.json` refleje el estado actual (Expo 57, RN 0.76, etc.).
-2. Para correr en web: `npm install && npm run web`.
-3. Para conectar con el backend revisa/proporciona `EXPO_PUBLIC_API_URL`.
-4. Para Google OAuth configura `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (y las variantes móviles si aplica).
-5. Antes de modificar `PortalApp`/`Header` revisa los `ViewKey` soportados; nuevas vistas deben añadirse a ambos.
-6. Antes de tocar `src/types.ts` revisa los consumidores en `services/*Api.ts` y `utils/*Storage.ts`.
+- [ ] `tsc` sin errores (`npx tsc --noEmit`).
+- [ ] App arranca en web (`npm run web`) sin errores de bundling.
+- [ ] Si se cambió un contrato de API, actualizar `src/services/*.ts` y `src/types.ts` en sincronía con `backend/`.
+- [ ] Si se cambió la vista/navegación, actualizar `ViewKey` y los callbacks de `Header`.
+- [ ] No versionar `.env*` ni credenciales.
+- [ ] Mantener documentación (este README) al día si cambia la estructura o el stack.
